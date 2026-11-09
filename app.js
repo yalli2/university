@@ -38,6 +38,8 @@ const pd=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
 const diff=s=>Math.round((pd(s)-today)/864e5);
 const dlabel=n=>n===0?'D-DAY':n>0?'D-'+n:'D+'+(-n);
 const SCH=(B.schedule||[]);
+const EVCOL=['#E5194B','#20232a','#ea580c','#bbbbbb','#9DB51E','#0d9488','#E5194B','#ea580c','#7c3aed','#db2777','#20232a','#2563eb','#0d9488','#7c3aed','#E5194B','#ea580c','#7c3aed','#db2777','#92400e','#6b7280'];
+const evColor=e=>EVCOL[SCH.indexOf(e)]||'#888';
 const nextEv=()=>SCH.find(e=>diff(e.e)>=0);
 const suneung=SCH.find(e=>e.g==='수능'&&e.t.includes('시험'));
 const curStage=()=>{if(prof.grade==='고1')return'고1';if(prof.grade==='고2')return'고2';
@@ -132,16 +134,17 @@ function planView(){
 // ---------- SCHEDULE ----------
 function schedView(){
   const months=[];for(let y=2026,m=5;!(y===2027&&m===3);){months.push([y,m]);m++;if(m>12){m=1;y++}}
-  const evOn=(d)=>SCH.find(e=>pd(e.s)<=d&&d<=pd(e.e)&&!(e.t.includes('전형기간')));
+  const evsOn=(d)=>SCH.filter(e=>pd(e.s)<=d&&d<=pd(e.e)&&!(e.t.includes('전형기간')));
+  const cellStyle=(es)=>{if(!es.length)return'';if(es.length===1)return`background:${evColor(es[0])}`;const n=es.length;return`background:linear-gradient(135deg,${es.map((e,i)=>`${evColor(e)} ${i*100/n}% ${(i+1)*100/n}%`).join(',')})`};
   return head('SCHEDULE','2027 대입 일정','수시·수능·정시·추가모집 전체 일정과 D-day',`<div class="quick"><button class="on">2027 대입</button></div>`)+
   `<div class="inner" style="padding:34px 24px 70px"><div class="legend"><span><i class="ca" style="background:var(--red)"></i>수시</span><span><i style="background:var(--lime-d)"></i>수능</span><span><i style="background:var(--navy)"></i>정시</span><span><i style="background:#888"></i>추가모집</span></div>
    <div class="tline">${SCH.map(e=>{const a=diff(e.s),b=diff(e.e);const past=b<0,cur=a<=0&&b>=0;
      return `<div class="tev g-${e.g} ${past?'past':''} ${cur?'cur':''}"><div class="when">${esc(e.d)}</div><div class="what"><b><span class="gbadge gb-${e.g}">${e.g}</span>${esc(e.t)}</b><small>2026 대입: ${esc(e.prev||'')}</small></div><div class="dd ${a>=0&&a<=30?'soon':''}">${cur?'진행 중':past?'종료':dlabel(a)}</div></div>`}).join('')}</div>
    <div class="note" style="margin-top:24px">${(B.scheduleNotes||[]).map(esc).join('<br>')}</div>
    <div class="months">${months.map(([y,m])=>{const f=new Date(y,m-1,1),days=new Date(y,m,0).getDate();let c='<tr>'+'<td></td>'.repeat(f.getDay());
-     for(let d=1;d<=days;d++){const dt=new Date(y,m-1,d),e=evOn(dt);c+=`<td class="${e?'ev g-'+e.g:''} ${+dt===+today?'today':''}" ${e?`title="${esc(e.t)}"`:''}>${d}</td>`;if(dt.getDay()===6)c+='</tr><tr>'}
+     for(let d=1;d<=days;d++){const dt=new Date(y,m-1,d),es=evsOn(dt);c+=`<td class="${es.length?'ev':''} ${+dt===+today?'today':''}" ${es.length?`style="${cellStyle(es)}" title="${esc(es.map(e=>e.t).join(' / '))}"`:''}>${d}</td>`;if(dt.getDay()===6)c+='</tr><tr>'}
      const evs=SCH.filter(e=>{const s=pd(e.s);return s.getFullYear()===y&&s.getMonth()===m-1});
-     return evs.length||true?`<div class="mon"><h4>${y}년 ${m}월</h4><table><tr>${'일월화수목금토'.split('').map(x=>`<th>${x}</th>`).join('')}</tr>${c}</tr></table>${evs.map(e=>`<div class="sm" style="margin-top:4px"><span class="gbadge gb-${e.g}">${e.g}</span>${pd(e.s).getDate()}일 ${esc(e.t)}</div>`).join('')}</div>`:''}).join('')}</div>
+     return evs.length||true?`<div class="mon"><h4>${y}년 ${m}월</h4><table><tr>${'일월화수목금토'.split('').map(x=>`<th>${x}</th>`).join('')}</tr>${c}</tr></table>${evs.map(e=>`<div class="evl"><i style="background:${evColor(e)}"></i><span class="gbadge gb-${e.g}">${e.g}</span><span>${pd(e.s).getDate()}${e.e!==e.s?'~'+(pd(e.e).getMonth()===pd(e.s).getMonth()?'':(pd(e.e).getMonth()+1)+'/')+pd(e.e).getDate():''}일 ${esc(e.t)}</span></div>`).join('')}</div>`:''}).join('')}</div>
    <p class="src">수시 전형기간(9. 12. ~ 12. 17.)은 대학별 면접·논술·실기 일정이 다르므로 모집요강에서 확인하세요.</p></div>`}
 
 // ---------- UNIVERSITIES ----------
